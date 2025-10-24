@@ -728,7 +728,13 @@ jobs:
           kubectl apply -f postgres-service.yaml
           
           echo "⏳ Waiting for PostgreSQL..."
-          kubectl wait --for=condition=ready pod -l service=postgres-n8n -n n8n --timeout=300s
+          if ! kubectl wait --for=condition=ready pod -l service=postgres-n8n -n n8n --timeout=600s; then
+            echo "❌ PostgreSQL failed to start. Debugging info:"
+            kubectl get pods -n n8n
+            kubectl describe pod -l service=postgres-n8n -n n8n
+            kubectl logs -l service=postgres-n8n -n n8n --tail=50
+            exit 1
+          fi
           
           echo "⏳ Waiting for Redis..."
           kubectl wait --for=condition=ready pod -l service=redis -n n8n --timeout=300s
