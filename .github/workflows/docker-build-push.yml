@@ -126,6 +126,22 @@ jobs:
               echo "n8n_version=pr-${{ github.event.pull_request.number }}"
               echo "push_enabled=false"
             } >> "$GITHUB_OUTPUT"
+          
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            # Push to master - build and deploy
+            {
+              echo "release_type=dev"
+              echo "n8n_version=latest"
+              echo "push_enabled=true"
+            } >> "$GITHUB_OUTPUT"
+          
+          else
+            # Fallback for any other event type
+            {
+              echo "release_type=dev"
+              echo "n8n_version=dev"
+              echo "push_enabled=false"
+            } >> "$GITHUB_OUTPUT"
           fi
 
           # Output summary for logs
