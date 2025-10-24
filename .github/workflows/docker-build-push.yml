@@ -598,3 +598,143 @@ jobs:
           channel: '#team-catalysts'
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           message: Nightly Docker build failed - ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  deploy-to-kubernetes:
+    name: Deploy to Kubernetes
+    needs: [determine-build-context, build-and-push-docker, create_multi_arch_manifest]
+    runs-on: ubuntu-latest
+    # Only deploy on push to master (not on schedule, PR, or workflow_dispatch)
+    if: |
+      success() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+      
+      - name: Inject secrets into manifests
+        run: |
+          cd n8n-hosting/kubernetes
+          
+          # Replace placeholders in n8n-secret.yaml
+          sed -i "s|N8N_ENCRYPTION_KEY: \"PLACEHOLDER_REPLACED_BY_CI\"|N8N_ENCRYPTION_KEY: \"${{ secrets.N8N_ENCRYPTION_KEY }}\"|g" n8n-secret.yaml
+          sed -i "s|N8N_RUNNERS_AUTH_TOKEN: \"PLACEHOLDER_REPLACED_BY_CI\"|N8N_RUNNERS_AUTH_TOKEN: \"${{ secrets.N8N_RUNNERS_AUTH_TOKEN }}\"|g" n8n-secret.yaml
+          
+          # Replace placeholders in postgres-secret.yaml
+          sed -i "s|POSTGRES_PASSWORD: PLACEHOLDER_REPLACED_BY_CI|POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}|g" postgres-secret.yaml
+          sed -i "s|POSTGRES_NON_ROOT_PASSWORD: PLACEHOLDER_REPLACED_BY_CI|POSTGRES_NON_ROOT_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}|g" postgres-secret.yaml
+          
+          echo "✅ Secrets injected successfully"
+      
+      - name: Update image tags to use custom images
+        run: |
+          cd n8n-hosting/kubernetes
+          
+          # Update to use your custom images from GHCR
+          sed -i "s|image: docker.n8n.io/n8nio/n8n:.*|image: ghcr.io/${{ github.repository_owner }}/n8n:latest|g" \
+            n8n-deployment-queue-mode.yaml n8n-worker-deployment.yaml
+          
+          sed -i "s|image: ghcr.io/n8n-io/runners:.*|image: ghcr.io/${{ github.repository_owner }}/runners:latest|g" \
+            n8n-runner-deployment.yaml
+          
+          echo "✅ Image references updated to custom images"
+      
+      - name: Check if namespace exists
+        id: check_namespace
+        run: |
+          if kubectl get namespace n8n &> /dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Namespace 'n8n' already exists - will update existing deployment"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "📦 Namespace 'n8n' does not exist - will perform initial deployment"
+          fi
+      
+      - name: Initial Deployment (if namespace doesn't exist)
+        if: steps.check_namespace.outputs.exists == 'false'
+        run: |
+          cd n8n-hosting/kubernetes
+          
+          echo "🚀 Performing initial deployment..."
+          
+          kubectl apply -f namespace.yaml
+          kubectl apply -f postgres-secret.yaml
+          kubectl apply -f n8n-secret.yaml
+          kubectl apply -f postgres-claim0-persistentvolumeclaim.yaml
+          kubectl apply -f n8n-claim0-persistentvolumeclaim.yaml
+          kubectl apply -f redis-claim0-persistentvolumeclaim.yaml
+          kubectl apply -f redis-deployment.yaml
+          kubectl apply -f postgres-configmap.yaml
+          kubectl apply -f postgres-deployment.yaml
+          kubectl apply -f postgres-service.yaml
+          
+          echo "⏳ Waiting for PostgreSQL..."
+          kubectl wait --for=condition=ready pod -l service=postgres-n8n -n n8n --timeout=300s
+          
+          echo "⏳ Waiting for Redis..."
+          kubectl wait --for=condition=ready pod -l service=redis -n n8n --timeout=300s
+          
+          kubectl apply -f n8n-deployment-queue-mode.yaml
+          kubectl apply -f n8n-service.yaml
+          kubectl apply -f n8n-main-service.yaml
+          
+          echo "⏳ Waiting for n8n main..."
+          kubectl wait --for=condition=ready pod -l service=n8n-main -n n8n --timeout=300s
+          
+          kubectl apply -f n8n-worker-deployment.yaml
+          kubectl apply -f n8n-runner-deployment.yaml
+          
+          echo "✅ Initial deployment complete!"
+      
+      - name: Update Existing Deployment (if namespace exists)
+        if: steps.check_namespace.outputs.exists == 'true'
+        run: |
+          cd n8n-hosting/kubernetes
+          
+          echo "🔄 Updating existing deployment..."
+          
+          # Update secrets (in case they changed)
+          kubectl apply -f n8n-secret.yaml
+          kubectl apply -f postgres-secret.yaml
+          
+          # Update deployments (will pick up new image tags)
+          kubectl apply -f n8n-deployment-queue-mode.yaml
+          kubectl apply -f n8n-worker-deployment.yaml
+          kubectl apply -f n8n-runner-deployment.yaml
+          
+          echo "✅ Update applied!"
+      
+      - name: Wait for rollout to complete
+        run: |
+          echo "⏳ Waiting for rollout to complete..."
+          kubectl rollout status deployment/n8n-main -n n8n --timeout=10m
+          kubectl rollout status deployment/n8n-worker -n n8n --timeout=10m
+          kubectl rollout status deployment/n8n-runner -n n8n --timeout=10m
+          echo "✅ All deployments rolled out successfully!"
+      
+      - name: Display deployment status
+        run: |
+          echo "=========================================="
+          echo "🎉 n8n Deployment Complete!"
+          echo "=========================================="
+          echo ""
+          echo "📊 Pod Status:"
+          kubectl get pods -n n8n
+          echo ""
+          echo "🔗 Access URL:"
+          kubectl get svc n8n -n n8n
+          echo ""
+          echo "Access n8n at the EXTERNAL-IP above on port 5678"
+          echo "=========================================="
