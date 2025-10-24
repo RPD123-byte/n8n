@@ -13,7 +13,7 @@ Deploy production-ready n8n with PostgreSQL, Redis, workers, and task runners in
 ### 1. Generate Secrets
 
 ```bash
-# Generate all required secrets
+# Generate all required secrets 
 echo "Copy these values into your secret files:"
 echo ""
 echo "For postgres-secret.yaml:"
