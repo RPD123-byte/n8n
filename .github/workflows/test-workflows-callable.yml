@@ -26,7 +26,7 @@ env:
 jobs:
   run_workflow_tests:
     name: Run Workflow Tests with Snapshots
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -34,7 +34,7 @@ jobs:
           ref: ${{ inputs.git_ref }}
 
       - name: Set up Environment
-        uses: ./.github/actions/setup-nodejs-blacksmith
+        uses: ./.github/actions/setup-nodejs-github
 
       - name: Set up Workflow Tests
         run: pnpm --filter=n8n-playwright test:workflows:setup

@@ -48,7 +48,7 @@ env:
 
 jobs:
   test:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +62,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Environment
-        uses: ./.github/actions/setup-nodejs-blacksmith
+        uses: ./.github/actions/setup-nodejs-github
         with:
           build-command: ${{ inputs.test-mode == 'docker-build' && 'pnpm build:docker' || 'pnpm turbo build:playwright' }}
           enable-docker-cache: ${{ inputs.test-mode != 'local' }}

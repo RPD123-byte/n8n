@@ -1,6 +1,6 @@
 # This workflow is used to build and push the Docker image for n8nio/n8n and n8nio/runners
 # - determine-build-context: Determines what needs to be built based on the trigger
-# - build-and-push-docker: This builds on both an ARM64 and AMD64 runner so the builds are native to the platform. Uses blacksmith native runners and build-push-action
+# - build-and-push-docker: This builds on both an ARM64 and AMD64 runner. Uses standard GitHub runners and docker/build-push-action
 # - create_multi_arch_manifest: This creates the multi-arch manifest for the Docker image. Needed to recombine the images from the build-and-push-docker job since they are separate runners.
 # - security-scan: This scans the n8nio/n8n Docker image for security vulnerabilities using Trivy.
 # - security-scan-runners: This scans the n8nio/runners Docker image for security vulnerabilities using Trivy.
@@ -357,7 +357,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push n8n Docker image
-        uses: useblacksmith/build-push-action@574eb0ee0b59c6a687ace24192f0727dfb65d6d7 # v1.2
+        uses: docker/build-push-action@v5 # v1.2
         with:
           context: .
           file: ./docker/images/n8n/Dockerfile
@@ -372,7 +372,7 @@ jobs:
           tags: ${{ steps.determine-tags.outputs.tags }}
 
       - name: Build and push task runners Docker image
-        uses: useblacksmith/build-push-action@574eb0ee0b59c6a687ace24192f0727dfb65d6d7 # v1.2
+        uses: docker/build-push-action@v5 # v1.2
         with:
           context: .
           file: ./docker/images/runners/Dockerfile

@@ -29,18 +29,18 @@ env:
 jobs:
   build:
     name: Install & Build
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     if: github.event_name != 'pull_request_review' || startsWith(github.event.pull_request.base.ref, 'release/')
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup and Build
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
 
   sqlite-pooled:
     name: SQLite Pooled
     needs: build
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       DB_TYPE: sqlite
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup and Build
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
 
       - name: Test SQLite Pooled
         working-directory: packages/cli
@@ -58,7 +58,7 @@ jobs:
   mariadb:
     name: MariaDB
     needs: build
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       DB_MYSQLDB_PASSWORD: password
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup and Build
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
 
       - name: Start MariaDB
         uses: isbang/compose-action@802a148945af6399a338c7906c267331b39a71af # v2.0.0
@@ -87,7 +87,7 @@ jobs:
   mysql:
     name: MySQL 8.4
     needs: build
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       DB_MYSQLDB_PASSWORD: password
@@ -99,7 +99,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup and Build
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
 
       - name: Start MySQL
         uses: isbang/compose-action@802a148945af6399a338c7906c267331b39a71af # v2.0.0
@@ -115,7 +115,7 @@ jobs:
   postgres:
     name: Postgres
     needs: build
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       DB_POSTGRESDB_PASSWORD: password
@@ -124,7 +124,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup and Build
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
 
       - name: Start Postgres
         uses: isbang/compose-action@802a148945af6399a338c7906c267331b39a71af # v2.0.0

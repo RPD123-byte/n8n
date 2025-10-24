@@ -13,7 +13,7 @@ on:
 jobs:
   sqlite-export-sqlite-import:
     name: sqlite database export -> sqlite database import
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       db_changed: ${{ steps.paths-filter.outputs.db == 'true' }}
     steps:
@@ -31,7 +31,7 @@ jobs:
               - packages/cli/**
       - name: Setup, build and export sqlite
         if: steps.paths-filter.outputs.db == 'true'
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
         with:
           build-command: |
             pnpm build
@@ -39,7 +39,7 @@ jobs:
             ./packages/cli/bin/n8n import:entities --inputDir packages/cli/commands/export/outputs --truncateTables
   postgres-export-postgres-import:
     name: postgres export -> postgres import
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       db_changed: ${{ steps.paths-filter.outputs.db == 'true' }}
     env:
@@ -66,7 +66,7 @@ jobs:
 
       - name: Setup and Build
         if: steps.paths-filter.outputs.db == 'true'
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
 
       - name: Start Postgres
         if: steps.paths-filter.outputs.db == 'true'

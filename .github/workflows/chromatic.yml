@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   changeset:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - name: Determine changed files
         uses: tomi/paths-filter-action@v3.0.2
@@ -38,14 +38,14 @@ jobs:
         github.event.review.state == 'approved' &&
         !contains(github.event.pull_request.labels.*.name, 'community')
       )
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github # v1.104.1
         with:
           build-command: pnpm run build --filter=@n8n/utils --filter=@n8n/vitest-config --filter=@n8n/design-system
 
