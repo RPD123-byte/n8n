@@ -200,7 +200,9 @@ jobs:
           # Convert repository owner to lowercase for Docker compatibility
           REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           GHCR_BASE="ghcr.io/${REPO_OWNER_LOWER}/n8n"
-          DOCKER_BASE="${{ secrets.DOCKER_USERNAME }}/n8n"
+          # Convert Docker Hub username to lowercase
+          DOCKER_USERNAME_LOWER=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          DOCKER_BASE="${DOCKER_USERNAME_LOWER}/n8n"
           PLATFORM="${{ matrix.platform }}"
 
           GHCR_TAGS_FOR_PUSH=""
@@ -283,7 +285,9 @@ jobs:
           # Convert repository owner to lowercase for Docker compatibility
           REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           GHCR_BASE="ghcr.io/${REPO_OWNER_LOWER}/runners"
-          DOCKER_BASE="${{ secrets.DOCKER_USERNAME }}/runners"
+          # Convert Docker Hub username to lowercase
+          DOCKER_USERNAME_LOWER=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          DOCKER_BASE="${DOCKER_USERNAME_LOWER}/runners"
           PLATFORM="${{ matrix.platform }}"
 
           GHCR_TAGS_FOR_PUSH=""
