@@ -371,13 +371,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Convert Docker Hub username to lowercase
+        if: needs.determine-build-context.outputs.push_enabled == 'true'
+        id: docker_username
+        run: |
+          DOCKER_USERNAME_LOWER=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "username=${DOCKER_USERNAME_LOWER}" >> "$GITHUB_OUTPUT"
+      
       - name: Login to Docker Hub
         if: needs.determine-build-context.outputs.push_enabled == 'true' && (
           steps.determine-tags.outputs.dockerhub_platform_tag != '' ||
           steps.determine-runners-tags.outputs.dockerhub_platform_tag != '')
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ steps.docker_username.outputs.username }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push n8n Docker image
