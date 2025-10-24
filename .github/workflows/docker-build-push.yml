@@ -12,13 +12,12 @@ env:
   NODE_VERSION: '22.21.0'
 
 on:
-  # Build on push to master
-  push:
+  # Build on push to master - ONLY after tests pass
+  workflow_run:
+    workflows: ["Test Master"]
+    types:
+      - completed
     branches: [master, main]
-    paths:
-      - 'packages/**'
-      - 'docker/**'
-      - '.github/workflows/docker-build-push.yml'
 
   schedule:
     - cron: '0 0 * * *'
@@ -62,9 +61,28 @@ on:
       - 'docker/images/runners/Dockerfile'
 
 jobs:
+  # For workflow_run triggers, check if the triggering workflow succeeded
+  check-tests-passed:
+    name: Check Tests Passed
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run'
+    steps:
+      - name: Check if tests passed
+        if: github.event.workflow_run.conclusion != 'success'
+        run: |
+          echo "Tests failed or were cancelled. Aborting deployment."
+          echo "Test workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+          exit 1
+      
+      - name: Tests passed
+        run: |
+          echo "✅ Tests passed successfully! Proceeding with Docker build and deployment."
+
   determine-build-context:
     name: Determine Build Context
     runs-on: ubuntu-latest
+    needs: [check-tests-passed]
+    if: always() && (needs.check-tests-passed.result == 'success' || needs.check-tests-passed.result == 'skipped')
     outputs:
       release_type: ${{ steps.context.outputs.release_type }}
       n8n_version: ${{ steps.context.outputs.n8n_version }}
@@ -145,21 +163,22 @@ jobs:
               "platform": ["amd64"],
               "include": [{
                 "platform": "amd64",
-                "runner": "blacksmith-4vcpu-ubuntu-2204",
+                "runner": "ubuntu-latest",
                 "docker_platform": "linux/amd64"
               }]
             }'
           else
             # All other builds (stable, nightly, dev, PR) need both platforms
+            # Note: For ARM64, we use ubuntu-latest with QEMU emulation
             MATRIX='{
               "platform": ["amd64", "arm64"],
               "include": [{
                 "platform": "amd64",
-                "runner": "blacksmith-4vcpu-ubuntu-2204",
+                "runner": "ubuntu-latest",
                 "docker_platform": "linux/amd64"
               }, {
                 "platform": "arm64",
-                "runner": "blacksmith-4vcpu-ubuntu-2204-arm",
+                "runner": "ubuntu-latest",
                 "docker_platform": "linux/arm64"
               }]
             }'
@@ -187,7 +206,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup and Build
-        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
+        uses: ./.github/actions/setup-nodejs-github
         with:
           build-command: pnpm build:n8n
 
