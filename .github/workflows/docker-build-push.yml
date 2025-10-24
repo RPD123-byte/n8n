@@ -197,7 +197,9 @@ jobs:
         run: |
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
           N8N_VERSION_TAG="${{ needs.determine-build-context.outputs.n8n_version }}"
-          GHCR_BASE="ghcr.io/${{ github.repository_owner }}/n8n"
+          # Convert repository owner to lowercase for Docker compatibility
+          REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          GHCR_BASE="ghcr.io/${REPO_OWNER_LOWER}/n8n"
           DOCKER_BASE="${{ secrets.DOCKER_USERNAME }}/n8n"
           PLATFORM="${{ matrix.platform }}"
 
@@ -278,7 +280,9 @@ jobs:
         run: |
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
           N8N_VERSION_TAG="${{ needs.determine-build-context.outputs.n8n_version }}"
-          GHCR_BASE="ghcr.io/${{ github.repository_owner }}/runners"
+          # Convert repository owner to lowercase for Docker compatibility
+          REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          GHCR_BASE="ghcr.io/${REPO_OWNER_LOWER}/runners"
           DOCKER_BASE="${{ secrets.DOCKER_USERNAME }}/runners"
           PLATFORM="${{ matrix.platform }}"
 
@@ -643,11 +647,14 @@ jobs:
         run: |
           cd n8n-hosting/kubernetes
           
+          # Convert repository owner to lowercase for Docker compatibility
+          REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          
           # Update to use your custom images from GHCR
-          sed -i "s|image: docker.n8n.io/n8nio/n8n:.*|image: ghcr.io/${{ github.repository_owner }}/n8n:latest|g" \
+          sed -i "s|image: docker.n8n.io/n8nio/n8n:.*|image: ghcr.io/${REPO_OWNER_LOWER}/n8n:latest|g" \
             n8n-deployment-queue-mode.yaml n8n-worker-deployment.yaml
           
-          sed -i "s|image: ghcr.io/n8n-io/runners:.*|image: ghcr.io/${{ github.repository_owner }}/runners:latest|g" \
+          sed -i "s|image: ghcr.io/n8n-io/runners:.*|image: ghcr.io/${REPO_OWNER_LOWER}/runners:latest|g" \
             n8n-runner-deployment.yaml
           
           echo "✅ Image references updated to custom images"
