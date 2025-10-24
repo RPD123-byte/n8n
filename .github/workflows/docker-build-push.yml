@@ -440,7 +440,9 @@ jobs:
         run: |
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
           N8N_VERSION="${{ needs.determine-build-context.outputs.n8n_version }}"
-          DOCKER_BASE="${{ secrets.DOCKER_USERNAME }}/n8n"
+          # Convert Docker Hub username to lowercase
+          DOCKER_USERNAME_LOWER=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          DOCKER_BASE="${DOCKER_USERNAME_LOWER}/n8n"
 
           # Determine if Docker Hub manifest is needed and construct the tag
           case "$RELEASE_TYPE" in
@@ -476,7 +478,9 @@ jobs:
         run: |
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
           N8N_VERSION="${{ needs.determine-build-context.outputs.n8n_version }}"
-          DOCKER_BASE="${{ secrets.DOCKER_USERNAME }}/runners"
+          # Convert Docker Hub username to lowercase
+          DOCKER_USERNAME_LOWER=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          DOCKER_BASE="${DOCKER_USERNAME_LOWER}/runners"
 
           # Determine if Docker Hub manifest is needed and construct the tag
           case "$RELEASE_TYPE" in
@@ -507,12 +511,20 @@ jobs:
               ;;
           esac
 
+      - name: Convert Docker Hub username to lowercase
+        if: steps.dockerhub_check.outputs.CREATE_DOCKERHUB_MANIFEST == 'true' ||
+          steps.dockerhub_runners_check.outputs.CREATE_DOCKERHUB_MANIFEST == 'true'
+        id: docker_username_manifest
+        run: |
+          DOCKER_USERNAME_LOWER=$(echo "${{ secrets.DOCKER_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "username=${DOCKER_USERNAME_LOWER}" >> "$GITHUB_OUTPUT"
+      
       - name: Login to Docker Hub
         if: steps.dockerhub_check.outputs.CREATE_DOCKERHUB_MANIFEST == 'true' ||
           steps.dockerhub_runners_check.outputs.CREATE_DOCKERHUB_MANIFEST == 'true'
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ steps.docker_username_manifest.outputs.username }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Create GHCR multi-arch manifest
