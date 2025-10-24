@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: n8n-runner
+  name: n8n-runner
+  namespace: n8n
+spec:
+  replicas: 2  # 1-2 runners per worker is a good starting point
+  selector:
+    matchLabels:
+      service: n8n-runner
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        service: n8n-runner
+    spec:
+      containers:
+        - name: n8n-runner-javascript
+          image: ghcr.io/n8n-io/n8n-task-runner-javascript:latest
+          env:
+            # Task broker connection
+            - name: N8N_RUNNERS_TASK_BROKER_URI
+              value: "ws://n8n-main:5679"
+            
+            # Authentication token
+            - name: N8N_RUNNERS_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_AUTH_TOKEN
+            
+            # Runner configuration
+            - name: N8N_RUNNERS_MAX_CONCURRENCY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_MAX_CONCURRENCY
+            - name: N8N_RUNNERS_TASK_TIMEOUT
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_TASK_TIMEOUT
+            - name: N8N_RUNNERS_HEARTBEAT_INTERVAL
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_HEARTBEAT_INTERVAL
+            
+            # Code node permissions
+            - name: NODE_FUNCTION_ALLOW_BUILTIN
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: NODE_FUNCTION_ALLOW_BUILTIN
+            
+            # Optional: Timezone (should match n8n instance)
+            - name: GENERIC_TIMEZONE
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: GENERIC_TIMEZONE
+                  optional: true
+          
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          
+          # Health check
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5680
+            initialDelaySeconds: 10
+            periodSeconds: 10
+        
+        # Uncomment to add Python runner alongside JavaScript runner
+        # - name: n8n-runner-python
+        #   image: ghcr.io/n8n-io/n8n-task-runner-python:latest
+        #   env:
+        #     - name: N8N_RUNNERS_TASK_BROKER_URI
+        #       value: "ws://n8n-main:5679"
+        #     - name: N8N_RUNNERS_AUTH_TOKEN
+        #       valueFrom:
+        #         secretKeyRef:
+        #           name: n8n-secret
+        #           key: N8N_RUNNERS_AUTH_TOKEN
+        #     - name: N8N_RUNNERS_MAX_CONCURRENCY
+        #       valueFrom:
+        #         secretKeyRef:
+        #           name: n8n-secret
+        #           key: N8N_RUNNERS_MAX_CONCURRENCY
+        #     - name: N8N_RUNNERS_STDLIB_ALLOW
+        #       valueFrom:
+        #         secretKeyRef:
+        #           name: n8n-secret
+        #           key: N8N_RUNNERS_STDLIB_ALLOW
+        #     - name: GENERIC_TIMEZONE
+        #       valueFrom:
+        #         secretKeyRef:
+        #           name: n8n-secret
+        #           key: GENERIC_TIMEZONE
+        #           optional: true
+        #   resources:
+        #     requests:
+        #       memory: "512Mi"
+        #       cpu: "250m"
+        #     limits:
+        #       memory: "1Gi"
+        #       cpu: "500m"
+      
+      restartPolicy: Always
+

@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: n8n-worker
+  name: n8n-worker
+  namespace: n8n
+spec:
+  replicas: 3  # Scale this based on workload
+  selector:
+    matchLabels:
+      service: n8n-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        service: n8n-worker
+    spec:
+      containers:
+        - name: n8n-worker
+          image: docker.n8n.io/n8nio/n8n:latest
+          command: ["n8n", "worker"]
+          args: ["--concurrency=10"]
+          env:
+            # Database Configuration
+            - name: DB_TYPE
+              value: postgresdb
+            - name: DB_POSTGRESDB_HOST
+              value: postgres-service.n8n.svc.cluster.local
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: n8n
+            - name: DB_POSTGRESDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_NON_ROOT_USER
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_NON_ROOT_PASSWORD
+            
+            # Queue Mode Configuration
+            - name: EXECUTIONS_MODE
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: EXECUTIONS_MODE
+            - name: QUEUE_BULL_REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: QUEUE_BULL_REDIS_HOST
+            - name: QUEUE_BULL_REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: QUEUE_BULL_REDIS_PORT
+            - name: QUEUE_HEALTH_CHECK_ACTIVE
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: QUEUE_HEALTH_CHECK_ACTIVE
+            
+            # Encryption Key (MUST match main instance)
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_ENCRYPTION_KEY
+            
+            # Worker Concurrency
+            - name: N8N_CONCURRENCY_PRODUCTION_LIMIT
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_CONCURRENCY_PRODUCTION_LIMIT
+                  optional: true
+            
+            # Task Runners Configuration (workers need to know about runners)
+            - name: N8N_RUNNERS_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_ENABLED
+            - name: N8N_RUNNERS_MODE
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_MODE
+            - name: N8N_RUNNERS_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_RUNNERS_AUTH_TOKEN
+            
+            # Optional: Timezone
+            - name: GENERIC_TIMEZONE
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: GENERIC_TIMEZONE
+                  optional: true
+          
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          
+          # Health checks for workers
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz/readiness
+              port: 5678
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      
+      restartPolicy: Always
+
