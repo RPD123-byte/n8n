@@ -7,6 +7,7 @@ metadata:
   namespace: n8n
 spec:
   replicas: 1  # Main instance - can scale to multiple for HA with N8N_MULTI_MAIN_SETUP_ENABLED=true
+  progressDeadlineSeconds: 900  # 15 minutes for initial startup
   selector:
     matchLabels:
       service: n8n-main

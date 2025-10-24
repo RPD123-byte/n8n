@@ -772,9 +772,34 @@ jobs:
       - name: Wait for rollout to complete
         run: |
           echo "⏳ Waiting for rollout to complete..."
-          kubectl rollout status deployment/n8n-main -n n8n --timeout=10m
-          kubectl rollout status deployment/n8n-worker -n n8n --timeout=10m
-          kubectl rollout status deployment/n8n-runner -n n8n --timeout=10m
+          
+          # Wait for n8n-main with debugging
+          if ! kubectl rollout status deployment/n8n-main -n n8n --timeout=15m; then
+            echo "❌ n8n-main deployment failed. Debugging info:"
+            kubectl get pods -n n8n -l service=n8n-main
+            kubectl describe pod -l service=n8n-main -n n8n
+            kubectl logs -l service=n8n-main -n n8n --tail=100 --all-containers=true
+            exit 1
+          fi
+          
+          # Wait for n8n-worker with debugging
+          if ! kubectl rollout status deployment/n8n-worker -n n8n --timeout=10m; then
+            echo "❌ n8n-worker deployment failed. Debugging info:"
+            kubectl get pods -n n8n -l service=n8n-worker
+            kubectl describe pod -l service=n8n-worker -n n8n
+            kubectl logs -l service=n8n-worker -n n8n --tail=100 --all-containers=true
+            exit 1
+          fi
+          
+          # Wait for n8n-runner with debugging
+          if ! kubectl rollout status deployment/n8n-runner -n n8n --timeout=10m; then
+            echo "❌ n8n-runner deployment failed. Debugging info:"
+            kubectl get pods -n n8n -l service=n8n-runner
+            kubectl describe pod -l service=n8n-runner -n n8n
+            kubectl logs -l service=n8n-runner -n n8n --tail=100 --all-containers=true
+            exit 1
+          fi
+          
           echo "✅ All deployments rolled out successfully!"
       
       - name: Display deployment status
