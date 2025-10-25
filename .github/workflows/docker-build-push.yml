@@ -727,9 +727,31 @@ jobs:
           kubectl apply -f redis-claim0-persistentvolumeclaim.yaml
           
           echo "⏳ Waiting for PVCs to be bound..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/postgresql-pv -n n8n --timeout=300s
-          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/n8n-claim0 -n n8n --timeout=300s
-          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/redis-claim0 -n n8n --timeout=300s
+          
+          # Debug: Show PVC status
+          kubectl get pvc -n n8n
+          kubectl get storageclass
+          
+          if ! kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/postgresql-pv -n n8n --timeout=300s; then
+            echo "❌ PostgreSQL PVC failed to bind. Debugging info:"
+            kubectl get pvc postgresql-pv -n n8n -o yaml
+            kubectl describe pvc postgresql-pv -n n8n
+            kubectl get events -n n8n --field-selector involvedObject.name=postgresql-pv
+            exit 1
+          fi
+          
+          if ! kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/n8n-claim0 -n n8n --timeout=300s; then
+            echo "❌ n8n PVC failed to bind. Debugging info:"
+            kubectl describe pvc n8n-claim0 -n n8n
+            exit 1
+          fi
+          
+          if ! kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/redis-claim0 -n n8n --timeout=300s; then
+            echo "❌ Redis PVC failed to bind. Debugging info:"
+            kubectl describe pvc redis-claim0 -n n8n
+            exit 1
+          fi
+          
           echo "✅ All PVCs are bound!"
           
           kubectl apply -f redis-deployment.yaml
