@@ -719,9 +719,19 @@ jobs:
           kubectl apply -f namespace.yaml
           kubectl apply -f postgres-secret.yaml
           kubectl apply -f n8n-secret.yaml
+          
+          # Apply PVCs and wait for them to be bound
+          echo "📦 Creating Persistent Volume Claims..."
           kubectl apply -f postgres-claim0-persistentvolumeclaim.yaml
           kubectl apply -f n8n-claim0-persistentvolumeclaim.yaml
           kubectl apply -f redis-claim0-persistentvolumeclaim.yaml
+          
+          echo "⏳ Waiting for PVCs to be bound..."
+          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/postgresql-pv -n n8n --timeout=300s
+          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/n8n-claim0 -n n8n --timeout=300s
+          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/redis-claim0 -n n8n --timeout=300s
+          echo "✅ All PVCs are bound!"
+          
           kubectl apply -f redis-deployment.yaml
           kubectl apply -f postgres-configmap.yaml
           kubectl apply -f postgres-deployment.yaml
