@@ -704,6 +704,23 @@ jobs:
           if kubectl get namespace n8n &> /dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "✅ Namespace 'n8n' already exists - will update existing deployment"
+            
+            # Check PVC status
+            echo "🔍 Checking PVC status..."
+            kubectl get pvc -n n8n
+            
+            # If any PVC is not bound, fail with instructions
+            UNBOUND=$(kubectl get pvc -n n8n -o json | jq -r '.items[] | select(.status.phase != "Bound") | .metadata.name' | wc -l)
+            if [ "$UNBOUND" -gt 0 ]; then
+              echo "❌ Found $UNBOUND unbound PVCs. You need to delete the namespace and start fresh:"
+              kubectl get pvc -n n8n
+              echo ""
+              echo "To fix this, run:"
+              echo "  kubectl delete namespace n8n"
+              echo "  kubectl wait --for=delete namespace/n8n --timeout=300s"
+              echo "Then re-run this workflow."
+              exit 1
+            fi
           else
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "📦 Namespace 'n8n' does not exist - will perform initial deployment"
