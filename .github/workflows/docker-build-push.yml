@@ -258,10 +258,10 @@ jobs:
                 GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
                 DOCKER_TAGS_FOR_PUSH=""
               else
-                # Regular dev builds go to both registries
-                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:dev"
+                # Regular dev builds go to both registries, using the version tag (e.g., "latest" for push builds)
+                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
                 GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
-                DOCKER_TAGS_FOR_PUSH="${DOCKER_BASE}:dev-${PLATFORM}"
+                DOCKER_TAGS_FOR_PUSH="${DOCKER_BASE}:${N8N_VERSION_TAG}-${PLATFORM}"
               fi
               ;;
           esac
@@ -328,9 +328,10 @@ jobs:
                 GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
                 DOCKER_TAGS_FOR_PUSH=""
               else
-                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:dev"
+                # Regular dev builds go to both registries, using the version tag (e.g., "latest" for push builds)
+                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
                 GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
-                DOCKER_TAGS_FOR_PUSH="${DOCKER_BASE}:dev-${PLATFORM}"
+                DOCKER_TAGS_FOR_PUSH="${DOCKER_BASE}:${N8N_VERSION_TAG}-${PLATFORM}"
               fi
               ;;
           esac
@@ -685,11 +686,11 @@ jobs:
           # Convert repository owner to lowercase for Docker compatibility
           REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           
-          # Update to use your custom images from GHCR (using 'dev' tag for push builds)
-          sed -i "s|image: docker.n8n.io/n8nio/n8n:.*|image: ghcr.io/${REPO_OWNER_LOWER}/n8n:dev|g" \
+          # Update to use your custom images from GHCR (using 'latest' tag for production)
+          sed -i "s|image: docker.n8n.io/n8nio/n8n:.*|image: ghcr.io/${REPO_OWNER_LOWER}/n8n:latest|g" \
             n8n-deployment-queue-mode.yaml n8n-worker-deployment.yaml
           
-          sed -i "s|image: ghcr.io/n8n-io/runners:.*|image: ghcr.io/${REPO_OWNER_LOWER}/runners:dev|g" \
+          sed -i "s|image: ghcr.io/n8n-io/runners:.*|image: ghcr.io/${REPO_OWNER_LOWER}/runners:latest|g" \
             n8n-runner-deployment.yaml
           
           echo "✅ Image references updated to custom images"
