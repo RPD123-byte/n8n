@@ -27,7 +27,7 @@ spec:
           env:
             # Task broker connection
             - name: N8N_RUNNERS_TASK_BROKER_URI
-              value: "ws://n8n-main:5679"
+              value: "http://n8n-main:5679"
             
             # Authentication token
             - name: N8N_RUNNERS_AUTH_TOKEN
