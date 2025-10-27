@@ -705,15 +705,29 @@ jobs:
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "✅ Namespace 'n8n' already exists - will update existing deployment"
             
-            # Check PVC status
-            echo "🔍 Checking PVC status..."
-            kubectl get pvc -n n8n
+            # Check for problematic states that require fresh deployment
+            echo "🔍 Checking deployment health..."
+            kubectl get pods -n n8n 2>/dev/null || true
             
-            # If any PVC is not bound, force delete and recreate
-            UNBOUND=$(kubectl get pvc -n n8n -o json | jq -r '.items[] | select(.status.phase != "Bound") | .metadata.name' | wc -l)
+            NEEDS_RESET=false
+            
+            # Check for unbound PVCs
+            UNBOUND=$(kubectl get pvc -n n8n -o json 2>/dev/null | jq -r '.items[] | select(.status.phase != "Bound") | .metadata.name' | wc -l)
             if [ "$UNBOUND" -gt 0 ]; then
-              echo "❌ Found $UNBOUND unbound PVCs. Force deleting namespace for fresh start..."
-              kubectl get pvc -n n8n
+              echo "❌ Found $UNBOUND unbound PVCs"
+              NEEDS_RESET=true
+            fi
+            
+            # Check for CrashLoopBackOff pods (e.g., encryption key mismatch)
+            CRASHING=$(kubectl get pods -n n8n --field-selector=status.phase=Running -o json 2>/dev/null | jq -r '.items[].status.containerStatuses[]? | select(.state.waiting.reason == "CrashLoopBackOff") | .name' | wc -l)
+            if [ "$CRASHING" -gt 0 ]; then
+              echo "❌ Found $CRASHING pods in CrashLoopBackOff"
+              kubectl logs -n n8n -l service=n8n-main --tail=20 || true
+              NEEDS_RESET=true
+            fi
+            
+            if [ "$NEEDS_RESET" = true ]; then
+              echo "❌ Unhealthy deployment detected. Force deleting namespace for fresh start..."
               
               # Force delete the namespace
               kubectl delete namespace n8n --grace-period=0 --force || true
