@@ -15,10 +15,6 @@ on:
   # Build on push to master
   push:
     branches: [master, main]
-    paths:
-      - 'packages/**'
-      - 'docker/**'
-      - '.github/workflows/docker-build-push.yml'
 
   schedule:
     - cron: '0 0 * * *'
