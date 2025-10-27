@@ -709,17 +709,28 @@ jobs:
             echo "🔍 Checking PVC status..."
             kubectl get pvc -n n8n
             
-            # If any PVC is not bound, fail with instructions
+            # If any PVC is not bound, force delete and recreate
             UNBOUND=$(kubectl get pvc -n n8n -o json | jq -r '.items[] | select(.status.phase != "Bound") | .metadata.name' | wc -l)
             if [ "$UNBOUND" -gt 0 ]; then
-              echo "❌ Found $UNBOUND unbound PVCs. You need to delete the namespace and start fresh:"
+              echo "❌ Found $UNBOUND unbound PVCs. Force deleting namespace for fresh start..."
               kubectl get pvc -n n8n
-              echo ""
-              echo "To fix this, run:"
-              echo "  kubectl delete namespace n8n"
-              echo "  kubectl wait --for=delete namespace/n8n --timeout=300s"
-              echo "Then re-run this workflow."
-              exit 1
+              
+              # Force delete the namespace
+              kubectl delete namespace n8n --grace-period=0 --force || true
+              
+              # Wait for deletion (with timeout)
+              echo "⏳ Waiting for namespace deletion..."
+              kubectl wait --for=delete namespace/n8n --timeout=180s || true
+              
+              # Double check it's gone
+              sleep 10
+              if kubectl get namespace n8n &> /dev/null; then
+                echo "❌ Namespace still exists! Manual intervention required."
+                exit 1
+              fi
+              
+              echo "✅ Namespace deleted. Setting flag for initial deployment."
+              echo "exists=false" >> $GITHUB_OUTPUT
             fi
           else
             echo "exists=false" >> $GITHUB_OUTPUT
