@@ -142,15 +142,9 @@ sleep 30
 echo -e "${YELLOW}📋 Available storage classes:${NC}"
 kubectl get storageclass
 
-if kubectl get storageclass gp3 &> /dev/null; then
-    echo -e "${GREEN}✅ gp3 storage class is available!${NC}"
-elif kubectl get storageclass gp2 &> /dev/null; then
-    echo -e "${YELLOW}⚠️  gp3 not found, but gp2 is available. You may need to update your PVC manifests.${NC}"
-else
-    echo -e "${RED}❌ No gp3 or gp2 storage class found!${NC}"
-    echo -e "${YELLOW}Creating gp3 storage class manually...${NC}"
-    
-    cat <<EOF | kubectl apply -f -
+# Always create gp3 storage class (idempotent)
+echo -e "${YELLOW}📦 Creating gp3 storage class...${NC}"
+cat <<EOF | kubectl apply -f -
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -162,8 +156,12 @@ parameters:
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 EOF
-    
-    echo -e "${GREEN}✅ gp3 storage class created!${NC}"
+
+if kubectl get storageclass gp3 &> /dev/null; then
+    echo -e "${GREEN}✅ gp3 storage class is available!${NC}"
+else
+    echo -e "${RED}❌ Failed to create gp3 storage class!${NC}"
+    exit 1
 fi
 
 # Step 4: Save cluster info
