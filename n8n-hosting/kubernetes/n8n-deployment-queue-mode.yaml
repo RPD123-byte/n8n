@@ -27,7 +27,7 @@ spec:
               mountPath: /data
       containers:
         - name: n8n
-          image: docker.n8n.io/n8nio/n8n:latest
+          image: ghcr.io/rpd123-byte/n8n:latest
           command:
             - /bin/sh
           args:

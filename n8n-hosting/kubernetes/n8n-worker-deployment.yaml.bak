@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: n8n-worker
-          image: ghcr.io/rpd123-byte/n8n:latest
+          image: docker.n8n.io/n8nio/n8n:latest
           command: ["n8n", "worker"]
           args: ["--concurrency=10"]
           env:
