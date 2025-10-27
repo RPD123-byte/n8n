@@ -76,6 +76,13 @@ spec:
                   name: n8n-secret
                   key: N8N_ENCRYPTION_KEY
             
+            # Security Configuration
+            - name: N8N_SECURE_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_SECURE_COOKIE
+            
             # Worker Concurrency
             - name: N8N_CONCURRENCY_PRODUCTION_LIMIT
               valueFrom:
