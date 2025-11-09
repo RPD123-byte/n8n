@@ -1,0 +1,80 @@
+name: Meticulous Visual Regression Tests
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: Run Meticulous Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for base comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Meticulous CLI
+        run: npm install -g @alwaysmeticulous/cli
+
+      - name: Prepare for tests
+        id: prepare
+        env:
+          METICULOUS_API_TOKEN: ${{ secrets.METICULOUS_API_TOKEN }}
+        run: |
+          # Prepare for Meticulous tests - this triggers test run generation on base
+          npx @alwaysmeticulous/cli prepare-for-meticulous-tests \
+            --apiToken="${METICULOUS_API_TOKEN}" \
+            --headCommit="${{ github.event.pull_request.head.sha }}" \
+            --baseCommit="${{ github.event.pull_request.base.sha }}"
+
+      - name: Run Meticulous tests
+        env:
+          METICULOUS_API_TOKEN: ${{ secrets.METICULOUS_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Run tests and post results to PR
+          npx @alwaysmeticulous/cli run-all-tests-in-cloud \
+            --apiToken="${METICULOUS_API_TOKEN}" \
+            --headCommit="${{ github.event.pull_request.head.sha }}" \
+            --baseCommit="${{ github.event.pull_request.base.sha }}" \
+            --appUrl="http://a414a6a1e26174420a74aa4eb4ae4df3-1583809330.us-west-2.elb.amazonaws.com:5678" \
+            --githubToken="${GITHUB_TOKEN}" \
+            --repo="${{ github.repository }}" \
+            --pullRequestNumber="${{ github.event.pull_request.number }}"
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `## 🎭 Meticulous Visual Regression Tests
+            
+            Meticulous has finished analyzing this PR!
+            
+            Check the [Meticulous dashboard](https://app.meticulous.ai) for detailed visual diffs.
+            
+            - **Base commit**: \`${{ github.event.pull_request.base.sha }}\`
+            - **Head commit**: \`${{ github.event.pull_request.head.sha }}\`
+            - **Test URL**: http://a414a6a1e26174420a74aa4eb4ae4df3-1583809330.us-west-2.elb.amazonaws.com:5678
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+
