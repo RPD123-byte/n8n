@@ -34,27 +34,16 @@ jobs:
         with:
           version: '10.18.3'
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pnpm-store
-            node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        run: pnpm --filter=n8n-editor-ui build
-
       - name: Run Meticulous tests and report diffs
         uses: alwaysmeticulous/report-diffs-action@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
           app-directory: 'packages/frontend/editor-ui/dist'
-          # Build command will run on both base and head commits
-          build-command: 'pnpm install --frozen-lockfile && pnpm --filter=n8n-editor-ui build'
+          # Build command MUST build all dependencies first, then frontend
+          # This command runs TWICE: once for base (master), once for head (PR)
+          build-command: |
+            pnpm install --frozen-lockfile
+            pnpm --filter @n8n/vitest-config build
+            pnpm --filter @n8n/design-system build  
+            pnpm --filter=n8n-editor-ui build
 
