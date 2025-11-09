@@ -171,7 +171,13 @@ export class Start extends BaseCommand<z.infer<typeof flagsSchema>> {
 					replaceStream('/%257B%257BBASE_PATH%257D%257D/', n8nPath, { ignoreCase: false }),
 				];
 				if (filePath.endsWith('index.html')) {
+					// Determine if this is a production environment for Meticulous
+					const isProduction =
+						process.env.NODE_ENV === 'production' || process.env.ENVIRONMENT === 'production';
 					streams.push(
+						replaceStream('%METICULOUS_IS_PRODUCTION%', isProduction ? 'true' : 'false', {
+							ignoreCase: false,
+						}),
 						replaceStream('{{REST_ENDPOINT}}', this.globalConfig.endpoints.rest, {
 							ignoreCase: false,
 						}),

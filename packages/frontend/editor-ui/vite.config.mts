@@ -138,6 +138,7 @@ const plugins: UserConfig['plugins'] = [
 			return ctx.server
 				? html
 						.replace('%CONFIG_TAGS%', '')
+						.replace('%METICULOUS_IS_PRODUCTION%', 'false')
 						.replaceAll('/{{BASE_PATH}}', '//localhost:5678')
 						.replaceAll('/{{REST_ENDPOINT}}', '/rest')
 				: html;
