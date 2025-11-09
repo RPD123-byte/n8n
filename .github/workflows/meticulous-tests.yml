@@ -34,11 +34,15 @@ jobs:
         with:
           version: '10.18.3'
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend (and all dependencies)
+        run: pnpm --filter=n8n-editor-ui... build
+
       - name: Run Meticulous tests and report diffs
         uses: alwaysmeticulous/report-diffs-action/upload-assets@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
           app-directory: 'packages/frontend/editor-ui/dist'
-          # Meticulous will run this command on BOTH base and head commits
-          build-command: 'pnpm install --frozen-lockfile && pnpm --filter=n8n-editor-ui... build'
 
