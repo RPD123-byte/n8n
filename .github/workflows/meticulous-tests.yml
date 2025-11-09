@@ -34,10 +34,15 @@ jobs:
         with:
           version: '10.18.3'
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend (and all dependencies)
+        run: pnpm --filter=n8n-editor-ui... build
+
       - name: Run Meticulous tests and report diffs
-        uses: alwaysmeticulous/report-diffs-action@v1
+        uses: alwaysmeticulous/report-diffs-action/upload-assets@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
-          # Test against your live production n8n instance
-          app-url: 'http://a414a6a1e26174420a74aa4eb4ae4df3-1583809330.us-west-2.elb.amazonaws.com:5678'
+          app-directory: 'packages/frontend/editor-ui/dist'
 
