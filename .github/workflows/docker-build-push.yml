@@ -816,7 +816,13 @@ jobs:
           kubectl apply -f n8n-worker-deployment.yaml
           kubectl apply -f n8n-runner-deployment.yaml
           
-          echo "✅ Update applied!"
+          # Force restart to pull latest images (required when using :latest tag)
+          echo "🔄 Forcing rollout restart to pull new images..."
+          kubectl rollout restart deployment/n8n-main -n n8n
+          kubectl rollout restart deployment/n8n-worker -n n8n
+          kubectl rollout restart deployment/n8n-runner -n n8n
+          
+          echo "✅ Update applied and rollout restart triggered!"
       
       - name: Wait for rollout to complete
         run: |
