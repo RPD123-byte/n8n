@@ -101,6 +101,8 @@ defineExpose({
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
+	/* METICULOUS TEST: Slight background tint for visual regression testing */
+	background: linear-gradient(135deg, rgba(255, 250, 245, 0.3) 0%, rgba(248, 250, 252, 0.3) 100%);
 }
 
 .canvas {

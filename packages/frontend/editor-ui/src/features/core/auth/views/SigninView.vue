@@ -52,7 +52,7 @@ const emailLabel = computed(() => {
 });
 
 const formConfig: IFormBoxConfig = reactive({
-	title: locale.baseText('auth.signin'),
+	title: '🚀 ' + locale.baseText('auth.signin') + ' - Powered by Meticulous', // METICULOUS TEST
 	buttonText: locale.baseText('auth.signin'),
 	redirectText: locale.baseText('forgotPassword'),
 	redirectLink: '/forgot-password',
