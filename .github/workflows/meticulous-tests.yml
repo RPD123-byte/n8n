@@ -38,7 +38,6 @@ jobs:
         uses: alwaysmeticulous/report-diffs-action@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
-          app-directory: 'packages/frontend/editor-ui/dist'
-          # Build command runs on both base and head - builds all dependencies
-          build-command: 'pnpm install --frozen-lockfile && pnpm turbo build:playwright'
+          # Test against your live production n8n instance
+          app-url: 'http://a414a6a1e26174420a74aa4eb4ae4df3-1583809330.us-west-2.elb.amazonaws.com:5678'
 
