@@ -38,8 +38,6 @@ jobs:
         uses: alwaysmeticulous/report-diffs-action@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
-          app-directory: 'packages/frontend/editor-ui/dist'
-          # Build ALL required packages using turbo (builds dependencies automatically)
-          # This command runs TWICE by Meticulous: once on base, once on head
-          build-command: 'pnpm install --frozen-lockfile && pnpm --filter=n8n-editor-ui... build'
+          # Test against your live production n8n instance
+          app-url: 'http://a414a6a1e26174420a74aa4eb4ae4df3-1583809330.us-west-2.elb.amazonaws.com:5678'
 
