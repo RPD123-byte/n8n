@@ -34,16 +34,6 @@ jobs:
         with:
           version: '10.18.3'
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pnpm-store
-            node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
-
       - name: Run Meticulous tests and report diffs
         uses: alwaysmeticulous/report-diffs-action@v1
         with:
