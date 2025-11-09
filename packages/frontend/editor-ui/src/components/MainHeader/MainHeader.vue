@@ -324,7 +324,8 @@ async function onWorkflowDeactivated() {
 
 .main-header {
 	min-height: var(--navbar--height);
-	background-color: var(--color--background--light-3);
+	/* METICULOUS TEST: Very obvious color change */
+	background-color: #ffebcd;
 	width: 100%;
 	box-sizing: border-box;
 	border-bottom: var(--border-width) var(--border-style) var(--color--foreground);
