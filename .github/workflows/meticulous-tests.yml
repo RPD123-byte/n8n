@@ -35,9 +35,10 @@ jobs:
           version: '10.18.3'
 
       - name: Run Meticulous tests and report diffs
-        uses: alwaysmeticulous/report-diffs-action@v1
+        uses: alwaysmeticulous/report-diffs-action/upload-assets@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
-          # Test against your live production n8n instance
-          app-url: 'http://a414a6a1e26174420a74aa4eb4ae4df3-1583809330.us-west-2.elb.amazonaws.com:5678'
+          app-directory: 'packages/frontend/editor-ui/dist'
+          # Meticulous will run this command on BOTH base and head commits
+          build-command: 'pnpm install --frozen-lockfile && pnpm --filter=n8n-editor-ui... build'
 
