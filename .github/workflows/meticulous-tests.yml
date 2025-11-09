@@ -39,11 +39,7 @@ jobs:
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
           app-directory: 'packages/frontend/editor-ui/dist'
-          # Build command MUST build all dependencies first, then frontend
-          # This command runs TWICE: once for base (master), once for head (PR)
-          build-command: |
-            pnpm install --frozen-lockfile
-            pnpm --filter @n8n/vitest-config build
-            pnpm --filter @n8n/design-system build  
-            pnpm --filter=n8n-editor-ui build
+          # Build ALL required packages using turbo (builds dependencies automatically)
+          # This command runs TWICE by Meticulous: once on base, once on head
+          build-command: 'pnpm install --frozen-lockfile && pnpm --filter=n8n-editor-ui... build'
 
