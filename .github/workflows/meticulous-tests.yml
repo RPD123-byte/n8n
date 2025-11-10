@@ -39,6 +39,18 @@ jobs:
 
       - name: Build frontend (and all dependencies)
         run: pnpm --filter=n8n-editor-ui... build
+        env:
+          # Disable turbo cache to ensure fresh builds for comparison
+          TURBO_FORCE: true
+
+      - name: Verify build includes changes
+        run: |
+          echo "Checking if build includes visual changes..."
+          if grep -r "ffebcd\|METICULOUS" packages/frontend/editor-ui/dist/assets/*.css 2>/dev/null; then
+            echo "✅ Visual changes found in build"
+          else
+            echo "⚠️ Visual changes NOT found in build (might be in JS or not built)"
+          fi
 
       - name: Run Meticulous tests and report diffs
         uses: alwaysmeticulous/report-diffs-action/upload-assets@v1
