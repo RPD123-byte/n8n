@@ -1,12 +1,20 @@
-name: Meticulous Visual Regression Tests
+name: Meticulous
 
+# Important: The workflow needs to run both on pushes to your main branch and on
+# pull requests. It needs to run on your main branch because it'll use the results
+# from the base commit of the PR on the main branch to compare against.
 on:
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
+  pull_request: {}
+  # Important: We need the workflow to be triggered on workflow_dispatch events,
+  # so that Meticulous can run the workflow on the base commit to compare
+  # against if an existing workflow hasn't run
   workflow_dispatch: {}
 
+# Important: The workflow needs all the permissions below.
+# These permissions are mainly needed to post and update the status check and
+# feedback comment on your PR. Meticulous won't work without them.
 permissions:
   actions: write
   contents: read
@@ -16,12 +24,12 @@ permissions:
 
 jobs:
   test:
-    name: Run Meticulous Tests
+    name: Meticulous
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -34,27 +42,49 @@ jobs:
         with:
           version: '10.18.3'
 
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build frontend (and all dependencies)
-        run: pnpm --filter=n8n-editor-ui... build
+      - name: Build n8n
+        run: pnpm build:n8n
         env:
           # Disable turbo cache to ensure fresh builds for comparison
           TURBO_FORCE: true
 
-      - name: Verify build includes changes
+      - name: Start n8n server
         run: |
-          echo "Checking if build includes visual changes..."
-          if grep -r "ffebcd\|METICULOUS" packages/frontend/editor-ui/dist/assets/*.css 2>/dev/null; then
-            echo "✅ Visual changes found in build"
-          else
-            echo "⚠️ Visual changes NOT found in build (might be in JS or not built)"
-          fi
+          cd compiled
+          ./bin/n8n start &
+          N8N_PID=$!
+          echo "n8n started with PID $N8N_PID"
+          echo "Waiting for n8n to be ready..."
+          timeout 120 bash -c 'until curl -f http://localhost:5678/favicon.ico > /dev/null 2>&1; do sleep 2; done' || (echo "n8n failed to start" && exit 1)
+          echo "n8n is ready!"
+        env:
+          E2E_TESTS: 'true'
+          N8N_PORT: '5678'
+          N8N_LOG_LEVEL: 'info'
+          N8N_DIAGNOSTICS_ENABLED: 'false'
+          N8N_USER_MANAGEMENT_DISABLED: 'true'
+          EXECUTIONS_PROCESS: 'main'
 
-      - name: Run Meticulous tests and report diffs
-        uses: alwaysmeticulous/report-diffs-action/upload-assets@v1
+      - name: Run Meticulous tests
+        uses: alwaysmeticulous/report-diffs-action/cloud-compute@v1
         with:
           api-token: ${{ secrets.METICULOUS_API_TOKEN }}
-          app-directory: 'packages/frontend/editor-ui/dist'
+          app-url: 'http://localhost:5678'
 
