@@ -73,6 +73,8 @@ body {
 	align-items: center;
 	flex-direction: column;
 	padding-top: var(--spacing--2xl);
+	/* METICULOUS TEST: Add subtle shadow for visual regression testing */
+	filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.08));
 
 	> * {
 		width: 352px;
